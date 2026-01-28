@@ -1,33 +1,45 @@
-name: Build APK Without Spec
+name: Build War of Dots APK
 on: [push, workflow_dispatch]
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
 
-      - name: Install Buildozer and Dependencies
+      - name: Install System Dependencies
         run: |
-          pip install --upgrade buildozer Cython==0.29.33 setuptools
           sudo apt-get update
-          sudo apt-get install -y libtool autoconf automake build-essential libffi-dev libssl-dev pkg-config zlib1g-dev openjdk-17-jdk zip unzip
+          sudo apt-get install -y libtool autoconf automake build-essential libffi-dev libssl-dev pkg-config zlib1g-dev openjdk-17-jdk zip unzip aidl
+          pip install --upgrade pip
+          pip install --upgrade buildozer "Cython<3.0" setuptools wheel
 
-      - - name: Auto-Generate and Run Buildozer
+      - name: Auto-Configure and Build
         run: |
-          # 1. Initialize if spec doesn't exist
-          [ -f buildozer.spec ] || buildozer init
+          # 1. Create a fresh config file
+          buildozer init
           
-          # 2. Apply the "Aidl & License" fixes to the spec file
-          sed -i 's/# android.accept_sdk_license = False/android.accept_sdk_license = True/' buildozer.spec
+          # 2. Automatically fix the settings for your game
+          sed -i 's/title = My Application/title = War of Dots/' buildozer.spec
+          sed -i 's/package.name = myapp/package.name = warofdots/' buildozer.spec
           sed -i 's/requirements = python3,kivy/requirements = python3,pygame/' buildozer.spec
+          sed -i 's/# android.accept_sdk_license = False/android.accept_sdk_license = True/' buildozer.spec
           sed -i 's/# android.archs = arm64-v8a, armeabi-v7a/android.archs = arm64-v8a/' buildozer.spec
           
-          # 3. THE FIX: Force accept all licenses and run
-          # This 'yes' command answers every [y/n] prompt automatically
+          # 3. Add audio support so your .wav files work
+          sed -i 's/source.include_exts = py,png,jpg,kv,atlas/source.include_exts = py,png,jpg,wav,ogg,flac/' buildozer.spec
+
+          # 4. RUN THE BUILD (The 'yes |' handles the license prompts)
           yes | buildozer -v android debug
+
+      - name: Upload Finished APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: WarOfDots-Android-App
+          path: bin/*.apk
