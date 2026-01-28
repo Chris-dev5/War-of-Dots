@@ -18,17 +18,16 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libtool autoconf automake build-essential libffi-dev libssl-dev pkg-config zlib1g-dev openjdk-17-jdk zip unzip
 
-      - name: Auto-Generate and Run Buildozer
+      - - name: Auto-Generate and Run Buildozer
         run: |
-          # This command creates a fresh spec file automatically
-          buildozer init
+          # 1. Initialize if spec doesn't exist
+          [ -f buildozer.spec ] || buildozer init
           
-          # This script edits the file for you so you don't have to!
-          sed -i 's/title = My Application/title = War of Dots/' buildozer.spec
-          sed -i 's/package.name = myapp/package.name = warofdots/' buildozer.spec
-          sed -i 's/source.include_exts = py,png,jpg,kv,atlas/source.include_exts = py,png,jpg,wav,flac,ogg/' buildozer.spec
+          # 2. Apply the "Aidl & License" fixes to the spec file
+          sed -i 's/# android.accept_sdk_license = False/android.accept_sdk_license = True/' buildozer.spec
           sed -i 's/requirements = python3,kivy/requirements = python3,pygame/' buildozer.spec
-          sed -i 's/#android.archs = arm64-v8a, armeabi-v7a/android.archs = arm64-v8a/' buildozer.spec
+          sed -i 's/# android.archs = arm64-v8a, armeabi-v7a/android.archs = arm64-v8a/' buildozer.spec
           
-          # Start the build
-          buildozer -v android debug
+          # 3. THE FIX: Force accept all licenses and run
+          # This 'yes' command answers every [y/n] prompt automatically
+          yes | buildozer -v android debug
