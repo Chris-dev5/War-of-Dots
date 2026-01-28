@@ -1,1 +1,34 @@
+name: Build APK Without Spec
+on: [push, workflow_dispatch]
 
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install Buildozer and Dependencies
+        run: |
+          pip install --upgrade buildozer Cython==0.29.33 setuptools
+          sudo apt-get update
+          sudo apt-get install -y libtool autoconf automake build-essential libffi-dev libssl-dev pkg-config zlib1g-dev openjdk-17-jdk zip unzip
+
+      - name: Auto-Generate and Run Buildozer
+        run: |
+          # This command creates a fresh spec file automatically
+          buildozer init
+          
+          # This script edits the file for you so you don't have to!
+          sed -i 's/title = My Application/title = War of Dots/' buildozer.spec
+          sed -i 's/package.name = myapp/package.name = warofdots/' buildozer.spec
+          sed -i 's/source.include_exts = py,png,jpg,kv,atlas/source.include_exts = py,png,jpg,wav,flac,ogg/' buildozer.spec
+          sed -i 's/requirements = python3,kivy/requirements = python3,pygame/' buildozer.spec
+          sed -i 's/#android.archs = arm64-v8a, armeabi-v7a/android.archs = arm64-v8a/' buildozer.spec
+          
+          # Start the build
+          buildozer -v android debug
